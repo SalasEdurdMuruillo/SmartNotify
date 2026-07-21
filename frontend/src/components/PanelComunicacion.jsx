@@ -227,11 +227,6 @@ function PanelComunicacion({ onActualizar }) {
   };
 
   useEffect(() => {
-    /*
-     * El WebSocket se conecta
-     * automáticamente para mostrar
-     * el progreso en tiempo real.
-     */
     conectarWebSocket();
 
     return () => {
