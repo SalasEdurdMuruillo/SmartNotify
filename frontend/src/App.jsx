@@ -1,122 +1,286 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import Navbar
+  from "./components/Navbar.jsx";
+
+import SolicitudForm
+  from "./components/SolicitudForm.jsx";
+
+import SolicitudesTable
+  from "./components/SolicitudesTable.jsx";
+
+import PanelComunicacion
+  from "./components/PanelComunicacion.jsx";
+
+import SolicitudDetalle
+  from "./components/SolicitudDetalle.jsx";
+
+import AccionCorreo
+  from "./components/AccionCorreo.jsx";
+
+import {
+  crearSolicitud,
+  cambiarEstado,
+  listarSolicitudes,
+} from "./services/solicitudService.js";
+
+import "./App.css";
+
+function obtenerRutaCorreo() {
+  const partes =
+    window.location.pathname
+      .split("/")
+      .filter(Boolean);
+
+  if (
+    partes.length !==
+    2
+  ) {
+    return null;
+  }
+
+  const tiposValidos = [
+    "solicitud",
+    "confirmar",
+    "cancelar",
+    "informacion",
+    "solucion",
+    "evaluacion",
+  ];
+
+  if (
+    !tiposValidos.includes(
+      partes[0],
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    tipo:
+      partes[0],
+
+    id:
+      partes[1],
+
+    token:
+      new URLSearchParams(
+        window.location.search,
+      ).get("token") || "",
+  };
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const rutaCorreo =
+    obtenerRutaCorreo();
+
+  const [
+    solicitudes,
+    setSolicitudes,
+  ] = useState([]);
+
+  const [
+    seleccionada,
+    setSeleccionada,
+  ] = useState(null);
+
+  const [
+    mensaje,
+    setMensaje,
+  ] = useState("");
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const cargarSolicitudes =
+    useCallback(
+      async () => {
+        try {
+          const datos =
+            await listarSolicitudes();
+
+          setSolicitudes(
+            datos,
+          );
+
+          setError("");
+        } catch (err) {
+          setError(
+            err.message,
+          );
+        }
+      },
+      [],
+    );
+
+  useEffect(
+    () => {
+      if (!rutaCorreo) {
+        cargarSolicitudes();
+      }
+    },
+    [
+      cargarSolicitudes,
+    ],
+  );
+
+  const registrar =
+    async (
+      datos,
+    ) => {
+      try {
+        const respuesta =
+          await crearSolicitud(
+            datos,
+          );
+
+        setMensaje(
+          `${respuesta.mensaje}. ID: #${respuesta.solicitud.id}`,
+        );
+
+        setError("");
+
+        await cargarSolicitudes();
+
+        return true;
+      } catch (err) {
+        setMensaje("");
+
+        setError(
+          err.message,
+        );
+
+        return false;
+      }
+    };
+
+  const actualizarEstado =
+    async (
+      id,
+      estado,
+    ) => {
+      try {
+        const respuesta =
+          await cambiarEstado(
+            id,
+            estado,
+          );
+
+        setMensaje(
+          respuesta.mensaje,
+        );
+
+        setError("");
+
+        await cargarSolicitudes();
+      } catch (err) {
+        setMensaje("");
+
+        setError(
+          err.message,
+        );
+      }
+    };
+
+  if (rutaCorreo) {
+    return (
+      <AccionCorreo
+        {...rutaCorreo}
+      />
+    );
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <Navbar />
 
-      <div className="ticks"></div>
+      <main className="container-fluid contenido-principal">
+        {
+          mensaje && (
+            <div className="alert alert-success">
+              {mensaje}
+            </div>
+          )
+        }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {
+          error && (
+            <div className="alert alert-danger d-flex justify-content-between align-items-center">
+              <span>
+                <strong>
+                  Error:
+                </strong>{" "}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+                {error}
+              </span>
+
+              <button
+                className="btn-close"
+                onClick={
+                  () =>
+                    setError(
+                      "",
+                    )
+                }
+              />
+            </div>
+          )
+        }
+
+        <div className="row g-4">
+          <div className="col-lg-5">
+            <SolicitudForm
+              onRegistrar={
+                registrar
+              }
+            />
+          </div>
+
+          <div className="col-lg-7">
+            <PanelComunicacion
+              onActualizar={
+                cargarSolicitudes
+              }
+            />
+          </div>
+        </div>
+
+        <SolicitudesTable
+          solicitudes={
+            solicitudes
+          }
+          onCambiarEstado={
+            actualizarEstado
+          }
+          onVer={
+            setSeleccionada
+          }
+        />
+
+        {
+          seleccionada && (
+            <SolicitudDetalle
+              solicitudId={
+                seleccionada
+              }
+              onCerrar={
+                () =>
+                  setSeleccionada(
+                    null,
+                  )
+              }
+            />
+          )
+        }
+      </main>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
